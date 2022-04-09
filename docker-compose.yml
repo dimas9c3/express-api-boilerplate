@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  # Node
+  nodejs:
+    build: 
+      context: .
+    container_name: nodejs_wa_bayles
+    ports:
+      - "49160:8080"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    restart: 'always'
+    user: "node"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - wa_bayles_network
+
+  # Mysql
+  mysql:
+    build:
+      context: ./docker/bin/mysql
+    container_name: mysql_wa_bayles
+    restart: 'always'
+    ports:
+      - "0.0.0.0:3307:3306"
+    volumes: 
+      - ./docker/data/mysql:/var/lib/mysql
+      - ./docker/logs/mysql:/var/log/mysql
+    command: --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootdb
+      MYSQL_DATABASE: docker
+      MYSQL_USER: docker
+      MYSQL_PASSWORD: docker
+    networks:
+      - wa_bayles_network
+
+# Networks
+networks:
+  wa_bayles_network:
+    driver: bridge
