@@ -5,7 +5,7 @@ services:
   nodejs:
     build: 
       context: .
-    container_name: nodejs_wa_bayles
+    container_name: nodejs_express_api_boilerplate
     ports:
       - "49160:8080"
     volumes:
@@ -16,13 +16,13 @@ services:
     environment:
       - NODE_ENV=development
     networks:
-      - wa_bayles_network
+      - express_api_boilerplate_network
 
   # Mysql
   mysql:
     build:
       context: ./docker/bin/mysql
-    container_name: mysql_wa_bayles
+    container_name: mysql_express_api_boilerplate
     restart: 'always'
     ports:
       - "0.0.0.0:3307:3306"
@@ -36,9 +36,9 @@ services:
       MYSQL_USER: docker
       MYSQL_PASSWORD: docker
     networks:
-      - wa_bayles_network
+      - express_api_boilerplate_network
 
 # Networks
 networks:
-  wa_bayles_network:
+  express_api_boilerplate_network:
     driver: bridge
