@@ -2,8 +2,7 @@ import * as Yup from "yup";
 import Address from "../models/Address";
 import User from "../models/User";
 import { Errors } from "../utils/errors";
-
-//Yup is a JavaScript schema builder for value parsing and validation.
+import { Op } from "sequelize";
 
 let userController = {
   add: async (req, res) => {
@@ -14,8 +13,11 @@ let userController = {
         password: Yup.string().required().min(6),
       });
 
-      if (!(await schema.isValid(req.body)))
-        return res.status(400).json({ error: Errors.VALIDATION_FAILS });
+      try {
+        await schema.validate(req.body);
+      } catch (error) {
+        return res.status(400).json({ status: false, message: Errors.VALIDATION_FAILS, data: error });
+      }
 
       const { email } = req.body;
 
@@ -24,14 +26,14 @@ let userController = {
       });
 
       if (userExists)
-        return res.status(400).json({ error: Errors.USER_ALREADY_EXISTS });
+        return res.status(400).json({ status: false, message: Errors.USER_ALREADY_EXISTS });
 
       const user = await User.create(req.body);
 
-      return res.status(200).json(user);
+      return res.status(200).json({ status: true, data: user });
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ error: Errors.SERVER_ERROR });
+      return res.status(500).json({ status: false, message: Errors.SERVER_ERROR });
     }
   },
 
@@ -46,8 +48,11 @@ let userController = {
         country: Yup.string().required(),
       });
 
-      if (!(await schema.isValid(body.address)))
-        return res.status(400).json({ error: Errors.VALIDATION_FAILS });
+      try {
+        await schema.validate(req.body);
+      } catch (error) {
+        return res.status(400).json({ status: false, message: Errors.VALIDATION_FAILS, data: error });
+      }
 
       const user = await User.findByPk(userId);
 
@@ -61,19 +66,26 @@ let userController = {
 
       await user.addAddress(address);
 
-      return res.status(200).json(user);
+      return res.status(200).json({ status: true, data: user });
     } catch (error) {
-      return res.status(500).json({ error: Errors.SERVER_ERROR });
+      return res.status(500).json({ status: false, message: Errors.SERVER_ERROR });
     }
   },
 
   get: async (req, res) => {
     try {
-      const users = await User.findAll();
+      const users = await User.findAll({
+        where: {
+          // id: { [Op.not]: req.userId },
+          email: {
+            [Op.not]: 'admin@admin.com'
+          }
+        },
+      });
 
-      return res.status(200).json(users);
+      return res.status(200).json({ status: true, data: users });
     } catch (error) {
-      return res.status(500).json({ error: Errors.SERVER_ERROR });
+      return res.status(500).json({ status: false, message: Errors.SERVER_ERROR });
     }
   },
 
@@ -83,18 +95,19 @@ let userController = {
       const user = await User.findByPk(id);
 
       if (!user)
-        return res.status(400).send({ error: Errors.NONEXISTENT_USER });
+        return res.status(400).send({ status: false, message: Errors.NONEXISTENT_USER });
 
-      return res.status(200).json(user);
+      return res.status(200).json({ status: true, data: user });
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ error: Errors.SERVER_ERROR });
+      return res.status(500).json({ status: false, message: Errors.SERVER_ERROR });
     }
   },
 
   update: async (req, res) => {
     try {
       const schema = Yup.object().shape({
+        id: Yup.string().required(),
         name: Yup.string(),
         email: Yup.string().email(),
         oldPassword: Yup.string().min(6),
@@ -116,12 +129,15 @@ let userController = {
         }),
       });
 
-      if (!(await schema.isValid(req.body)))
-        return res.status(400).json({ error: Errors.VALIDATION_FAILS });
+      try {
+        await schema.validate(req.body);
+      } catch (error) {
+        return res.status(400).json({ status: false, message: Errors.VALIDATION_FAILS, data: error });
+      }
 
-      const { email, oldPassword } = req.body;
+      const { id, email, oldPassword } = req.body;
 
-      const user = await User.findByPk(req.userId);
+      const user = await User.findByPk(id);
 
       if (email) {
         const userExists = await User.findOne({
@@ -129,7 +145,7 @@ let userController = {
         });
 
         if (userExists)
-          return res.status(400).json({ error: Errors.USER_ALREADY_EXISTS });
+          return res.status(400).json({ status: false, message: Errors.USER_ALREADY_EXISTS });
       }
 
       if (oldPassword && !(await user.checkPassword(oldPassword)))
@@ -137,10 +153,10 @@ let userController = {
 
       const newUser = await user.update(req.body);
 
-      return res.status(200).json(newUser);
+      return res.status(200).json({ status: true, data: newUser });
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ error: Errors.SERVER_ERROR });
+      return res.status(500).json({ status: false, message: Errors.SERVER_ERROR });
     }
   },
 
@@ -148,15 +164,15 @@ let userController = {
     try {
       const { id } = req.params;
       const user = await User.findByPk(id);
-      if (!user)
-        return res.status(400).send({ error: Errors.NONEXISTENT_USER });
+      if (!user || user.email == 'admin@admin.com')
+        return res.status(400).send({ status: false, message: Errors.NONEXISTENT_USER });
 
       user.destroy();
 
-      return res.status(200).json({ msg: "Deleted" });
+      return res.status(200).json({ status: true, message: "Deleted" });
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ error: Errors.SERVER_ERROR });
+      return res.status(500).json({ status: false, message: Errors.SERVER_ERROR });
     }
   },
 };

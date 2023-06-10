@@ -13,7 +13,7 @@ const authMiddleware = async (req, res, next) => {
     return next();
   } catch (error) {
     console.log("[EXPRESS] Unauthorized error with JWT validation \n", error);
-    res.status(401).json({ error: "Token invalid" });
+    res.status(401).json({ status: false, message: "Token invalid", reason: error });
   }
 };
 

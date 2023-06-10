@@ -30,12 +30,11 @@ const JwtService = {
       if (process.env.SERVER_JWT !== "true")
         throw new Error("[JWT] JWT flag is not setted");
       if (
-        !request.headers.authorization ||
-        request.headers.authorization.split(" ")[0] !== "Bearer"
+        !request.headers.token
       )
         throw new Error("[JWT] JWT token not provided");
 
-      return request.headers.authorization.split(" ")[1];
+      return request.headers.token
     } catch (error) {
       console.log("[JWT] Error getting JWT token");
       throw error;

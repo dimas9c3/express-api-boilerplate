@@ -11,25 +11,28 @@ let loginController = {
         password: Yup.string().required(),
       });
 
-      if (!(await schema.isValid(req.body)))
-        return res.status(400).json({ error: Errors.VALIDATION_FAILS });
+      try {
+        await schema.validate(req.body);
+      } catch (error) {
+        return res.status(400).json({ status: false, message: Errors.VALIDATION_FAILS, data: error });
+      }
 
       let { email, password } = req.body;
 
       const user = await User.findOne({ where: { email } });
 
       if (!user)
-        return res.status(400).send({ error: Errors.NONEXISTENT_USER });
+        return res.status(400).send({ status: false, message: Errors.NONEXISTENT_USER });
 
       if (!(await user.checkPassword(password)))
-        return res.status(401).send({ error: Errors.WRONG_PASSWORD });
+        return res.status(401).send({ status: false, message: Errors.WRONG_PASSWORD });
 
       const token = JwtService.jwtSign(user.id);
 
-      return res.status(200).json({ user, token });
+      return res.status(200).json({ status: true, data: { user, token } });
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ error: Errors.SERVER_ERROR });
+      return res.status(500).json({ status: false, message: Errors.SERVER_ERROR });
     }
   },
 
@@ -40,7 +43,7 @@ let loginController = {
       res.status(200).json({ msg: "Authorized" });
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ error: Errors.SERVER_ERROR });
+      return res.status(500).json({ status: false, message: Errors.SERVER_ERROR });
     }
   },
 };
